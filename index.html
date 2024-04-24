@@ -34,7 +34,6 @@
                 bottom: -5px;
                 z-index: -1;
                 border-radius: inherit;
-
                 /* 应用渐变边框 */
                 background-image: var(--border-color);
                 background-origin: border-box;
@@ -43,8 +42,6 @@
                 background-repeat: no-repeat;
                 background-position: center center;
             }
-
-
         }
 
         /* 定义按钮样式类名 */
@@ -59,26 +56,18 @@
             text-decoration: none;
             line-height: 1.5;
             cursor: pointer;
-
             /* 自定义渐变背景颜色 */
             background-image: linear-gradient(to right, #45aaf2, #5c9eeb);
             background-repeat: no-repeat;
             background-size: 100% 200%;
             transition: background-position 0.½s ease-in-out;
-
             /* 圆角设计 */
             border-radius: 8px;
-
             /* 内部间距 */
             padding: 12px 24px;
-
             /* 文字颜色与阴影 */
             color: white;
             text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-
-            &:hover {
-                background-position: 0 100%;
-            }
         }
     </style>
 </head>
@@ -88,22 +77,24 @@
         <table width="100%">
             <tr>
                 <td width="48%">
-                    <div>知识点粘贴在下面</div>
+                    <div><span>知识点粘贴在下面 </span><span style="float: right;"><a
+                                href="https://bestsvip.github.io/knowledge2test/example.docx">单击此处下载例子文档</a></span>
+                    </div>
                     <br />
-
                     <div class="word" id="test-e" contenteditable="true"></div>
                     <br />
-                    <span>生成填空题数量(默认10) </span><span><input style="height: 20px;width: auto;padding: 2px;margin-left: 4px;" value="10"
+                    <span>生成填空题数量(默认10) </span><span><input
+                            style="height: 20px;width: auto;padding: 2px;margin-left: 4px;" value="10"
                             id="text-b" /></span>
 
                 </td>
                 <td width="10px">
                 </td>
-                <td width="48%"  style="vertical-align: top;">
-                    <div><span>这是生成的题目 </span><span style="float: right;"><input style="padding: 4px;" type="button" id="notice_title" value="导出题目和答案（word）"
-                                onclick="html2doc();" /></span></div>
+                <td width="48%" style="vertical-align: top;">
+                    <div><span>这是生成的题目 </span><span style="float: right;"><input style="padding: 4px;" type="button"
+                                id="notice_title" value="导出题目和答案（word）" onclick="html2doc();" /></span></div>
                     <br />
-                    <div class="word" id="text-c"  style="clear: both;" contenteditable="true"></div>
+                    <div class="word" id="text-c" style="clear: both;" contenteditable="true"></div>
                 </td>
             </tr>
             <tr>
