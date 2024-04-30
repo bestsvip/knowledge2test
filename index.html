@@ -12,6 +12,10 @@
             margin: 0;
         }
 
+        p {
+            line-height: 1.5;
+        }
+
         .word {
             min-width: 100px;
             min-height: 400px;
@@ -24,6 +28,7 @@
             border-style: solid;
             overflow-y: auto;
             padding: 20px;
+
             /* 创建伪元素作为边框 */
             &::before {
                 content: "";
@@ -70,6 +75,7 @@
             text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
         }
     </style>
+    <script src="chaizi.js"></script>
 </head>
 
 <body>
@@ -82,30 +88,43 @@
                     </div>
                     <br />
                     <div class="word" id="test-e" contenteditable="true"></div>
-                    <br />
-                    <span>生成填空题数量(默认10) </span><span><input
-                            style="height: 20px;width: auto;padding: 2px;margin-left: 4px;" value="10"
-                            id="text-b" /></span>
 
                 </td>
                 <td width="10px">
                 </td>
                 <td width="48%" style="vertical-align: top;">
                     <div><span>这是生成的题目 </span><span style="float: right;"><input style="padding: 4px;" type="button"
-                                id="notice_title" value="导出题目和答案（word）" onclick="html2doc();" /></span></div>
+                                id="notice_title" value="导出题目和答案（word）" onclick="" /></span></div>
                     <br />
                     <div class="word" id="text-c" style="clear: both;" contenteditable="true"></div>
                 </td>
             </tr>
             <tr>
                 <td style="text-align: center;vertical-align: top;">
-                    <br>
-                    <button onclick="test2Paper()">生成</button>
+                    <br />
+                    <p style="margin: 10px;">
+                        <span>单选题数量(默认10) </span>
+                        <span><input style="height: 20px;width: auto;padding: 2px;margin-left: 4px;" value="10"
+                                id="text-bd" /></span>
+                    </p>
+                    <p style="margin: 10px;">
+                        <span>多选题数量(默认10) </span>
+                        <span><input style="height: 20px;width: auto;padding: 2px;margin-left: 4px;" value="10"
+                                id="text-dbd" /></span>
+                    </p>
+                    <p style="margin: 10px;">
+                        <span>填空题数量(默认10) </span>
+                        <span><input style="height: 20px;width: auto;padding: 2px;margin-left: 4px;" value="10"
+                                id="text-bt" /></span>
+                    </p>
+                    <p style="margin: 10px;"></p>
+                    <!-- <button id="btn" onclick="test2Paper()">生成</button> -->
+                    <button id="btn">生成</button>
                 </td>
                 <td width="10px">
                 </td>
                 <td>
-                    <div>这是生成的答案</div>
+                    <div style="margin-top: 30px;">这是生成的答案</div>
                     <br />
                     <div class="word" id="text-a" contenteditable="true"></div>
                 </td>
@@ -116,7 +135,19 @@
     <script src="jquery-2.1.1.min.js"></script>
     <script src="FileSaver.js"></script>
     <script src="jquery.wordexport.js"></script>
-
+    <script>
+        // 使用示例
+        dom = {
+            knowledge: 'test-e',
+            test: 'text-c',
+            answer: 'text-a',
+            testNum: ['text-bd', 'text-dbd', 'text-bt'],
+        }
+        const test2 = new test2Paper('btn', dom);
+        document.getElementById('notice_title').addEventListener('click', function () {
+            test2.html2doc();
+        });
+    </script>
 </body>
 
 </html>
