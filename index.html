@@ -132,6 +132,7 @@
         </table>
     </div>
     <script src="main.js"></script>
+    <!-- <script src="jquery-2.1.1.min.js"></script> -->
     <script src="http://libs.baidu.com/jquery/2.1.1/jquery.min.js"></script>
     <script src="FileSaver.js"></script>
     <script src="jquery.wordexport.js"></script>
@@ -143,9 +144,9 @@
             answer: 'text-a',
             testNum: ['text-bd', 'text-dbd', 'text-bt'],
         }
-        const test2 = new test2Paper('btn', dom);
+        const test = new test2Paper('btn', dom);
         document.getElementById('notice_title').addEventListener('click', function () {
-            test2.html2doc();
+            test.html2doc();
         });
     </script>
 </body>
