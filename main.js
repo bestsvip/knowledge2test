@@ -82,33 +82,41 @@ class test2Paper {
             0: '零', 1: '一', 2: '二', 3: '三', 4: '四',
             5: '五', 6: '六', 7: '七', 8: '八', 9: '九'
         };
-
+        // 获取数字位数
+        const numberOfDigits = inputString.length;
         // 检查输入是否为数字（十进制或中文数字）
         if (!/^\d+$/.test(inputString) && !/^[零|一|二|三|四|五|六|七|八|九]+$/.test(inputString)) {
             return [inputString];
         }
-        // 获取数字位数
-        const numberOfDigits = inputString.length;
+        // 检查输入是否为数字（十进制或中文数字）
+        else if (/^[零|一|二|三|四|五|六|七|八|九]+$/.test(inputString)) {
+            // 如果输入是中文数字，转换为阿拉伯数字
+            let arabicInput = inputString.split('').map(chineseDigit => chineseToArabic[chineseDigit]).join('');
+            // 生成+1，+2，-1，-2的数组
+            const adjustedArabicNumbers = [
+                parseInt(arabicInput) + 2,
+                parseInt(arabicInput) + 1,
+                parseInt(arabicInput),
+                parseInt(arabicInput) - 1,
+                parseInt(arabicInput) - 2
+            ];
+            // 转换回中文数字并保持位数
+            const adjustedChineseNumbers = adjustedArabicNumbers.map(num => {
+                const chineseNums = num.toString().split('').map(digit => arabicToChinese[parseInt(digit)]);
+                return chineseNums.join('').padStart(numberOfDigits, '零');
+            });
+            return adjustedChineseNumbers;
+        } else if (/\d/.test(inputString)) {
+            const adjustedArabicNumbers = [
+                parseInt(inputString) + 2,
+                parseInt(inputString) + 1,
+                parseInt(inputString),
+                parseInt(inputString) - 1,
+                parseInt(inputString) - 2
+            ];
 
-        // 如果输入是中文数字，转换为阿拉伯数字
-        let arabicInput = inputString.split('').map(chineseDigit => chineseToArabic[chineseDigit]).join('');
-
-        // 生成+1，+2，-1，-2的数组
-        const adjustedArabicNumbers = [
-            parseInt(arabicInput) + 2,
-            parseInt(arabicInput) + 1,
-            parseInt(arabicInput),
-            parseInt(arabicInput) - 1,
-            parseInt(arabicInput) - 2
-        ];
-
-        // 转换回中文数字并保持位数
-        const adjustedChineseNumbers = adjustedArabicNumbers.map(num => {
-            const chineseNums = num.toString().split('').map(digit => arabicToChinese[parseInt(digit)]);
-            return chineseNums.join('').padStart(numberOfDigits, '零');
-        });
-
-        return adjustedChineseNumbers;
+            return adjustedArabicNumbers;
+        }
     }
 
     /**
@@ -167,17 +175,23 @@ class test2Paper {
         if (/^[零|一|二|三|四|五|六|七|八|九]+$/.test(word)) {
             // 生成四个随机数字
             const number = word.match(/^[零|一|二|三|四|五|六|七|八|九]+$/g)[0];
-            let numberResult = shuffleArray(generateAdjustedChineseNumbers(number).splice(2, 1));
-            result.add(word.replace(number, this.generateRandomNumber(numberResult[0])));
-            result.add(word.replace(number, this.generateRandomNumber(numberResult[1])));
-            result.add(word.replace(number, this.generateRandomNumber(numberResult[2])));
+
+            let numberResult = this.generateAdjustedChineseNumbers(number);
+            numberResult = numberResult.filter((item, index) => item !== number);
+            numberResult = this.shuffleArray(numberResult);
+            result.add(word.replace(number, numberResult[0]));
+            result.add(word.replace(number, numberResult[1]));
+            result.add(word.replace(number, numberResult[2]));
             return Array.from(result);
         } else if (/\d/.test(word) && !/[a-zA-Z]/.test(word) && !word.includes('%')) {
             // 替换数字并生成四个随机数字
             const number = word.match(/[0-9]+/g)[0];
-            result.add(word.replace(number, this.generateRandomNumber(number)));
-            result.add(word.replace(number, this.generateRandomNumber(number)));
-            result.add(word.replace(number, this.generateRandomNumber(number)));
+            let numberResult = this.generateAdjustedChineseNumbers(number);
+            numberResult = numberResult.filter((item, index) => item !== number);
+            numberResult = this.shuffleArray(numberResult);
+            result.add(word.replace(number, numberResult[0]));
+            result.add(word.replace(number, numberResult[1]));
+            result.add(word.replace(number, numberResult[2]));
         }
         if (/^[a-zA-Z]+$/.test(word)) {
             // 随机化字母并生成四个随机化单词
@@ -240,24 +254,6 @@ class test2Paper {
         }
     }
 
-    // 注意：这里的styleReduce函数未改变，假设它接受一个元素作为参数并执行必要的样式处理。
-    /**
-    * 格式化答案输出为HTML字符串。
-    * @param {Object} answer - 答案对象。
-    * @returns {string} 格式化后的HTML字符串。
-    */
-    answerOutput(answer) {
-        let answerhtml = ''
-        const answer1 = Object.values(answer)
-        for (let span1 = 0; span1 < answer1.length; span1++) {
-            let newsp = answer1[span1]
-            if (newsp.length == 0) {
-                continue;
-            }
-            answerhtml += '<p>' + (span1 + 1) + '. ' + '<span>' + newsp.join('<span style="color:#696969"> ; </span>') + '</span></p>'
-        }
-        return answerhtml
-    }
     /**
  * 将文本按句子分割，支持常见的句末标点（包括换行符、问号、感叹号及中文句号、问号、感叹号）。
  * 过滤掉空字符串，确保返回的数组中每个元素都是非空的句子。
@@ -281,14 +277,15 @@ class test2Paper {
      * @returns {any[]} 长度为4的包含指定元素的随机数组。
      */
     getRandomList(arr, include) {
-        const includedItems = new Set(include);
+        arr = arr.filter(item => !include.includes(item));
+        const includedItems = Array.from(new Set(include));
         const result = []
         while (result.length < 4 - include.length) {
             const randomIndex = Math.floor(Math.random() * arr.length);
             const item = arr[randomIndex];
-            if (!includedItems.has(item) && !result.includes(item)) {
+            if (!includedItems.includes(item) && !result.includes(item)) {
                 result.push(item);
-                includedItems.add(item); // 添加到已包含的元素集合中
+                includedItems.push(item); // 添加到已包含的元素集合中
             }
             arr.splice(randomIndex, 1); // 移除已选中的元素，避免重复选取
         }
@@ -384,6 +381,67 @@ class test2Paper {
         }
         return false;
     }
+    /**
+     * 检查并返回给定值的数据类型。
+     * 
+     * @param {*} value 需要检查类型的值
+     * @returns {string} 返回值的数据类型，如"数组"、"对象"、"字符串"、"数字"、"布尔值"、"函数"、"null"或"其他类型"
+     */
+    checkType(value) {
+        if (Array.isArray(value)) {
+            return "数组";
+        } else if (typeof value === "string") {
+            return "字符串";
+        } else if (typeof value === "number") {
+            return "数字";
+        } else if (typeof value === "boolean") {
+            return "布尔值";
+        } else if (typeof value === 'function') {
+            return '函数';
+        } else if (value instanceof Object) {
+            return '对象';
+        } else if (value === null) {
+            return "null";
+        } else {
+            return "其他类型";
+        }
+    }
+
+    /**
+     * 在数组中查找指定目标的索引位置。
+     * 如果目标是数组，则返回每个元素在arr中的索引组成的数组；
+     * 如果目标是字符串，则返回该字符串在arr中的第一个索引位置组成的单元素数组。
+     * 
+     * @param {Array} arr 被搜索的数组
+     * @param {*} target 需要在数组中查找的目标值或目标数组
+     * @returns {Array<number>} 目标值在数组中的索引位置组成的数组，如果未找到则返回空数组
+     */
+    findAnswerOption(arr, target) {
+        if (this.checkType(target) === '数组') {
+            return this.replaceNumbersWithLetters(target.map(t => arr.indexOf(t)));
+        }
+        else if (this.checkType(target) === '字符串') {
+            return this.replaceNumbersWithLetters([arr.indexOf(target)])
+        }
+    }
+    /**
+     * 将数组中的数字替换为预定义字母表中的对应字母。
+     *
+     * 此函数接收一个包含非负整数的数组，其中每个整数代表
+     * 'A' 到 'E' 字母表中的一个位置（索引）。它将这些数字映射到相应的
+     * 字母上并返回一个新的数组，其中原始数字已被相应的字母替换。
+     *
+     * @param {number[]} arr - 一个包含整数的数组，整数范围应该是[0, 4]，
+     *                         用于映射到 'A' 到 'E' 的字母。
+     * @returns {string[]} 一个新的数组，其中每个元素都是原始数组中数字对应的字母。
+     *
+     * @example
+     * replaceNumbersWithLetters([0, 3, 1]); // returns ['A', 'D', 'B']
+     */
+    replaceNumbersWithLetters(arr) {
+        const mapping = ['A', 'B', 'C', 'D'];
+        return arr.map(num => mapping[num]);
+    }
 
     /**
     * 格式化答案输出为HTML字符串。
@@ -409,32 +467,34 @@ class test2Paper {
                 if (answer1List.length > 4) {
                     answer1List = this.getRandomList([...new Set(answer1List)], [answer1])
                 }
-                answer1List = this.shuffleArray([...[answer1], ...answer1List])
+                answer1List = this.shuffleArray([...[answer1], ...answer1List]).flat()
                 let html = '<span>' + subject1[0][0] + '</span></p>' +
-                    `<p><table><tr>
-                <td>A. ${answer1List[0]}</td>
-                <td>B. ${answer1List[1]}</td>
-                <td>C. ${answer1List[2]}</td>
-                <td>D. ${answer1List[3]}</td>
+                    `<p><table style="width: 100%;"><tr>
+                <td style="width: 25%;">A. ${answer1List[0]}</td>
+                <td style="width: 25%;">B. ${answer1List[1]}</td>
+                <td style="width: 25%;">C. ${answer1List[2]}</td>
+                <td style="width: 25%;">D. ${answer1List[3]}</td>
                 </tr></table><br/>`
                 subjecthtml += html
-                subjecthtmlRevised['单选'].push([html, answer1])
+                let foundAnswerOption = this.findAnswerOption(answer1List, answer1)
+                subjecthtmlRevised['单选'].push([html, answer1, foundAnswerOption])
             } else if (subject1[0][1] === '多选') {
                 let answer1Listold = this.findMatchingElements(answer1.join(''), this.answerListChai)
                 let answer1List = [...new Set([...answer1Listold, ...this.findMatchingElements(this.getLongestElement(answer1Listold), this.answerListChai)])]
                 if (answer1List.length > 3) {
                     answer1List = this.getRandomList(answer1List, answer1)
                 }
-                answer1List = this.shuffleArray([...answer1, ...answer1List])
+                answer1List = this.shuffleArray([...answer1, ...answer1List]).flat()
                 let html = '<span>' + subject1[0][0] + '</span></p>' +
-                    `<p><table><tr>
-                <td>A. ${answer1List[0]}</td>
-                <td>B. ${answer1List[1]}</td>
-                <td>C. ${answer1List[2]}</td>
-                <td>D. ${answer1List[3]}</td>
+                    `<p><table style="width: 100%;"><tr>
+                <td style="width: 25%;">A. ${answer1List[0]}</td>
+                <td style="width: 25%;">B. ${answer1List[1]}</td>
+                <td style="width: 25%;">C. ${answer1List[2]}</td>
+                <td style="width: 25%;">D. ${answer1List[3]}</td>
                 </tr></table><br/>`
                 subjecthtml += html
-                subjecthtmlRevised['多选'].push([html, answer1])
+                let foundAnswerOption = this.findAnswerOption(answer1List, answer1)
+                subjecthtmlRevised['多选'].push([html, answer1, foundAnswerOption])
             } else if (subject1[0][1] == '填空') {
                 let html = '<span>' + subject1[0][0] + '</span><br/>'
                 subjecthtml += html
@@ -519,7 +579,6 @@ class test2Paper {
             }
         }
         let subjecthtml, subjecthtmlRevised = this.subjectOutput(this.subject, this.answer)
-        // let answerhtml = this.answerOutput(this.answer)
         // let answerTotalCount = this.score(this.answer)
         // let tocount = '<span>一、填空题（共计' + answerTotalCount + '个空/2分）</span><p></p>' + subjecthtml
         // let tocount = subjecthtml
@@ -533,12 +592,20 @@ class test2Paper {
         for (let i of subjecthtmlRevised['单选']) {
             countNum += 1
             danxuan += `<span>${(countNum)}. ${i[0]} </span>`
-            danxuananswerhtml += `<p>${(countNum)}. ${i[1]}</p>`
+            danxuananswerhtml += `<p><table><tr>
+            <td>${(countNum)}. ${i[2].join('')}</td>
+            <td width='10px'></td>
+            <td>${i[1]}</td>
+            </tr></table></p>`
         }
         for (let i of subjecthtmlRevised['多选']) {
             countNum += 1
             duoxuan += `<span>${(countNum)}. ${i[0]} </span>`
-            duoxuananswerhtml += `<p>${(countNum)}. ${i[1]}</p>`
+            duoxuananswerhtml += `<p><table><tr>
+            <td width='100px'>${(countNum)}. ${i[2].join('').split("").sort().join("")}</td>
+            <td width='10px'></td>
+            <td>${i[1].join(' ; ')}</td>
+            </tr></table></p>`
         }
         for (let i of subjecthtmlRevised['填空']) {
             countNum += 1
@@ -599,7 +666,7 @@ class test2Paper {
                 stip = true
                 if (selectedNumbersValues[num] === '单选') {
                     const newspan2 = document.createElement('span');
-                    newspan2.innerHTML = '<span>（' + '    ' + '）</span>'
+                    newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(10) + '）</span>'
                     para.parentNode.replaceChild(newspan2, para);
                     inanswer = (num + 1) + '. ' + para.innerText
                     answer[num].push(para.innerText);
@@ -608,11 +675,14 @@ class test2Paper {
                     }
                 } else if (selectedNumbersValues[num] === '多选' && countnum <= 4) {
                     const newspan2 = document.createElement('span');
-                    newspan2.innerHTML = '<span>（' + '    ' + '）</span>'
+                    newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(10) + '）</span>'
                     para.parentNode.replaceChild(newspan2, para);
                     inanswer = (num + 1) + '. ' + para.innerText
                     answer[num].push(para.innerText);
                     countnum++;
+                    if (Math.random()>0.4 && countnum>=2) {
+                        break
+                    }
                 } else if (selectedNumbersValues[num] === '填空') {
                     const newspan2 = document.createElement('span');
                     newspan2.innerHTML = '<span>' + '_'.repeat(parseInt(para.innerText.length * 2.5) + 4) + '</span>'
