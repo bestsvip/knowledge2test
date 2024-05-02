@@ -5,6 +5,20 @@ html {
     margin: 0;
 }
 
+@keyframes moved {
+    0% {
+        background-position: 0 0;
+        background-size: 200% 100%;
+        transform: rotate(0deg);
+    }
+
+    100% {
+        background-position: -300px 0;
+        background-size: 100% 100%;
+        transform: rotate(0deg);
+    }
+}
+
 .colorful-text {
     /* 扩展颜色渐变序列，加入更多中间色阶以实现自然过渡 */
     background: linear-gradient(to right,
@@ -23,22 +37,9 @@ html {
     font-weight: bold;
     text-align: center;
     color: transparent;
-    animation: move 5s infinite;
+    animation: moved 5s infinite;
 }
 
-@keyframes move {
-    0% {
-        background-position: 0 0;
-        background-size: 200% 100%;
-        transform: rotate(0deg);
-    }
-
-    100% {
-        background-position: -300px 0;
-        background-size: 100% 100%;
-        transform: rotate(0deg);
-    }
-}
 .homepage-container {
     width: 100%
 }
