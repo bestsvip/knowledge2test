@@ -12,7 +12,7 @@ class test2Paper {
      * @param {Object} dom - 包含各部分DOM元素ID的对象。
      */
     constructor(id, dom) {
-        this.typeOfExamQuestion = ['单选', '多选', '填空'];
+        this.typeOfExamQuestion = ['单选', '多选', '判断', '填空'];
         this.answer = {}
         this.answerList = []
         this.answerListChai = []
@@ -20,13 +20,14 @@ class test2Paper {
         document.getElementById(id).onclick = () => {
             this.testNum = [document.getElementById(dom.testNum[0]).value,
             document.getElementById(dom.testNum[1]).value,
-            document.getElementById(dom.testNum[2]).value]
+            document.getElementById(dom.testNum[2]).value,
+            document.getElementById(dom.testNum[3]).value]
             this.testlist = this.generateTestList(
                 this.testNum,
                 this.typeOfExamQuestion);
             this.doms = {
                 text_a: document.getElementById(dom.answer),
-                text_b: document.getElementById(dom.testNum[0]).value + document.getElementById(dom.testNum[1]).value + document.getElementById(dom.testNum[2]).value,
+                text_b: document.getElementById(dom.testNum[0]).value + document.getElementById(dom.testNum[1]).value + document.getElementById(dom.testNum[2]).value + document.getElementById(dom.testNum[3]).value,
                 text_c: document.getElementById(dom.test),
                 test_e: document.getElementById(dom.knowledge),
             }
@@ -94,11 +95,11 @@ class test2Paper {
             let arabicInput = inputString.split('').map(chineseDigit => chineseToArabic[chineseDigit]).join('');
             // 生成+1，+2，-1，-2的数组
             const adjustedArabicNumbers = [
-                parseInt(arabicInput) + 2,
-                parseInt(arabicInput) + 1,
-                parseInt(arabicInput),
-                parseInt(arabicInput) - 1,
-                parseInt(arabicInput) - 2
+                parseFloat(arabicInput) + 2,
+                parseFloat(arabicInput) + 1,
+                parseFloat(arabicInput),
+                parseFloat(arabicInput) - 1,
+                parseFloat(arabicInput) - 2
             ];
             // 转换回中文数字并保持位数
             const adjustedChineseNumbers = adjustedArabicNumbers.map(num => {
@@ -108,11 +109,11 @@ class test2Paper {
             return adjustedChineseNumbers;
         } else if (/\d/.test(inputString)) {
             const adjustedArabicNumbers = [
-                parseInt(inputString) + 2,
-                parseInt(inputString) + 1,
-                parseInt(inputString),
-                parseInt(inputString) - 1,
-                parseInt(inputString) - 2
+                parseFloat(inputString) + 2,
+                parseFloat(inputString) + 1,
+                parseFloat(inputString),
+                parseFloat(inputString) - 1,
+                parseFloat(inputString) - 2
             ];
 
             return adjustedArabicNumbers;
@@ -147,7 +148,34 @@ class test2Paper {
         }
         return result;
     }
-
+    /**
+     * 检查两个字符串是否含有至少num个相同的字符。
+    //  * 如果任一字符串长度小于等于5，则降低要求到至少有2个相同字符。
+     *
+     * @param {string} str1 - 第一个字符串。
+     * @param {string} str2 - 第二个字符串。
+    //  * @param {number} [num=5] - 默认要求的相同字符数量。
+     * @returns {boolean} 如果满足条件返回true，否则返回false。
+     */
+    hasMoreThanFiveSameChars(str1, str2) {
+        let count = 0;
+        let set = new Set();
+        // if (str1.length <= 5 || str2.length <= 5) {
+        //     num = 2;
+        // }
+        for (let i = 0; i < str1.length; i++) {
+            if (!set.has(str1[i])) {
+                set.add(str1[i]);
+                if (str2.includes(str1[i])) {
+                    count++;
+                    // if (count >= num) {
+                    //     return true;
+                    // }
+                }
+            }
+        }
+        return count;
+    }
     /**
      * 判断两个单词是否在同一句话中
      * @param {string} sentence - 待检测的句子
@@ -161,70 +189,132 @@ class test2Paper {
         // 使用正则表达式测试句子中是否存在匹配
         return regex.test(sentence);
     }
-
     /**
-     * 找到与输入单词相关的四个匹配项
-     * @param {string} word - 输入的单词，可以是中文数字、英文单词或纯数字
-     * @param {Object} answerList - 包含答案的键值对对象
-     * @returns {Array<string>} - 包含四个与输入单词相关匹配项的数组
+     * 对给定的对象进行排序，返回一个新对象，其键值对按照值从大到小排序。
+     * @param {Object} obj - 待排序的对象，其键值对表示需要排序的数据。
+     * @returns {Object} - 排序后的新对象，键值对按照值从大到小排列。
      */
-    findMatchingElements(word, answerList) {
-        const result = new Set();
+    dictSort(obj) {
+        // 将对象转换为键值对数组并按照值进行排序
+        const sortedObj = Object.entries(obj).sort((a, b) => b[1] - a[1]);
+        // 将排序后的键值对数组转换回对象
+        return Object.fromEntries(sortedObj);
+    }
+    /**
+     * 根据输入单词的类型查找匹配项，并生成相应的变体或查找相似度高的单词。
+     * 支持数字（中文或阿拉伯数字）、纯字母单词的随机化变体生成，以及查找具有至少5个相同字符的单词。
+     * 若结果数量不足四个，尝试从相邻句子中寻找匹配项。
+     *
+     * @param {string} word - 输入的单词，可以是数字（中文或阿拉伯数字）或纯字母字符串。
+     * @param {Object} answerList - 用于查找匹配项的对象，键为单词，值为相关信息。
+     * @returns {Object} - 包含匹配项及其权重的结果对象。权重默认设为9999或实际匹配字符数。
+     */
+    findMatchingElements(wordc, answerList) {
+        const result = {};
+        const word = wordc.join('')
+        if (this.checkType(wordc) === '数组' && (/[a-zA-Z]/.test(word) || /[0-9]/.test(word))) {
 
-        // 根据输入单词的类型生成匹配项
-        if (/^[零|一|二|三|四|五|六|七|八|九]+$/.test(word)) {
-            // 生成四个随机数字
-            const number = word.match(/^[零|一|二|三|四|五|六|七|八|九]+$/g)[0];
+        } else {
+            // 根据输入单词的类型生成匹配项
+            if (/^[零|一|二|三|四|五|六|七|八|九]+$/.test(word)) {
+                // 生成四个随机数字
+                const number = word.match(/^[零|一|二|三|四|五|六|七|八|九]+$/g)[0];
 
-            let numberResult = this.generateAdjustedChineseNumbers(number);
-            numberResult = numberResult.filter((item, index) => item !== number);
-            numberResult = this.shuffleArray(numberResult);
-            result.add(word.replace(number, numberResult[0]));
-            result.add(word.replace(number, numberResult[1]));
-            result.add(word.replace(number, numberResult[2]));
-            return Array.from(result);
-        } else if (/\d/.test(word) && !/[a-zA-Z]/.test(word) && !word.includes('%')) {
-            // 替换数字并生成四个随机数字
-            const number = word.match(/[0-9]+/g)[0];
-            let numberResult = this.generateAdjustedChineseNumbers(number);
-            numberResult = numberResult.filter((item, index) => item !== number);
-            numberResult = this.shuffleArray(numberResult);
-            result.add(word.replace(number, numberResult[0]));
-            result.add(word.replace(number, numberResult[1]));
-            result.add(word.replace(number, numberResult[2]));
-        }
-        if (/^[a-zA-Z]+$/.test(word)) {
-            // 随机化字母并生成四个随机化单词
-            result.add(this.randomizeLetters(word));
-            result.add(this.randomizeLetters(word));
-            result.add(this.randomizeLetters(word));
-        }
-
-        // 查找具有5个以上相同字符的单词
-        let newword = this.chaiZi(word); // 假设chaiZi方法是将单词拆分成单个字符
-        let newALKeys = Object.keys(answerList);
-        let newALValues = Object.values(answerList);
-        for (let i = 0; i < newALValues.length; i++) {
-            if (this.hasMoreThanFiveSameChars(newword, newALValues[i])) {
-                result.add(newALKeys[i]);
+                let numberResult = this.generateAdjustedChineseNumbers(number);
+                numberResult = numberResult.filter((item, index) => item !== number);
+                numberResult = this.shuffleArray(numberResult);
+                result[word.replace(number, numberResult[0])] = 9999;
+                result[word.replace(number, numberResult[1])] = 9999;
+                result[word.replace(number, numberResult[2])] = 9999;
+                return result;
+            } else if (/\d/.test(word) && !/[a-zA-Z]/.test(word) && !word.includes('%')) {
+                // 替换数字并生成四个随机数字
+                const number = word.match(/[0-9]+/g)[0];
+                let numberResult = this.generateAdjustedChineseNumbers(number);
+                numberResult = numberResult.filter((item, index) => item !== parseFloat(number));
+                numberResult = this.shuffleArray(numberResult);
+                result[word.replace(number, numberResult[0])] = 9999;
+                result[word.replace(number, numberResult[1])] = 9999;
+                result[word.replace(number, numberResult[2])] = 9999;
+                return result;
+            } else if (/^[a-zA-Z]+$/.test(word)) {
+                // 随机化字母并生成四个随机化单词
+                result[this.randomizeLetters(word)] = 9999;
+                result[this.randomizeLetters(word)] = 9999;
+                result[this.randomizeLetters(word)] = 9999;
+                return result;
             }
         }
 
+        // 查找具有5个以上相同字符的单词
+        let newword = this.chaiZi(word);
+        let newALKeys = Object.keys(answerList);
+        let newALValues = Object.values(answerList);
+        for (let i = 0; i < newALValues.length; i++) {
+            let newALValuesi = newALValues[i]
+            const nearlyNum = [...newword].filter((char, index) => char === newALValues[i][index]).length;
+            // let nearlyNum = this.hasMoreThanFiveSameChars(newword, newALValues[i])
+            if ((newword.length <= 5 || newALValuesi.length <= 5) && nearlyNum > 3) {
+                result[newALKeys[i]] = nearlyNum;
+            } else if (nearlyNum > 5) {
+                result[newALKeys[i]] = nearlyNum;
+            }
+        }
         // 如果结果不足四个，查找在句子中与输入单词相邻的单词
-        if (result.size < 4) {
+        if (Object.keys(result).length < 4) {
             const liSen = this.sentList
             for (let i = 0; i < liSen.length; i++) {
                 for (let j of newALKeys) {
                     let newsent = liSen[i] + liSen[i + 1] + liSen[i + 2] + liSen[i + 3];
                     if (this.areWordsInSameSentence(newsent, word, j)) {
-                        result.add(newALKeys[i]);
+                        result[newALKeys[i]] = 1;
                     }
                 }
             }
         }
-
+        // result.delete(undefined);
         // 将Set转换为Array并返回结果
-        return Array.from(result);
+        return result;
+    }
+    /**
+     * 根据输入单词的类型查找匹配项，并生成相应的变体或查找相似度高的单词。
+     * 支持数字（中文或阿拉伯数字）、纯字母单词的随机化变体生成，以及查找具有至少5个相同字符的单词。
+     * 若结果数量不足四个，尝试从相邻句子中寻找匹配项。
+     * 第二轮查找不论如何皆为0
+     * @param {string} word - 输入的单词，可以是数字（中文或阿拉伯数字）或纯字母字符串。
+     * @param {Object} answerList - 用于查找匹配项的对象，键为单词，值为相关信息。
+     * @returns {Object} - 包含匹配项及其权重的结果对象。权重默认设为9999或实际匹配字符数。
+     */
+    findMatchingElements0(word, answerList) {
+        const result = {};
+        // 查找具有5个以上相同字符的单词
+        let newword = this.chaiZi(word);
+        let newALKeys = Object.keys(answerList);
+        let newALValues = Object.values(answerList);
+        for (let i = 0; i < newALValues.length; i++) {
+            let newALValuesi = newALValues[i]
+            const nearlyNum = [...newword].filter((char, index) => char === newALValues[i][index]).length;
+            // let nearlyNum = this.hasMoreThanFiveSameChars(newword, newALValues[i])
+            if ((newword.length <= 5 || newALValuesi.length <= 5) && nearlyNum > 3) {
+                result[newALKeys[i]] = nearlyNum;
+            } else if (nearlyNum > 5) {
+                result[newALKeys[i]] = nearlyNum;
+            }
+        }
+        // 如果结果不足四个，查找在句子中与输入单词相邻的单词
+        if (Object.keys(result).length < 4) {
+            const liSen = this.sentList
+            for (let i = 0; i < liSen.length; i++) {
+                for (let j of newALKeys) {
+                    let newsent = liSen[i] + liSen[i + 1] + liSen[i + 2] + liSen[i + 3];
+                    if (this.areWordsInSameSentence(newsent, word, j)) {
+                        result[newALKeys[i]] = 1;
+                    }
+                }
+            }
+        }
+        // 将Set转换为Array并返回结果
+        return result;
     }
     /**
     * 根据规则筛选并处理文档中的span元素样式。
@@ -348,38 +438,10 @@ class test2Paper {
     chaiAnswerList() {
         this.answerListChai = {};
         for (let i of this.answerList) {
-            this.answerListChai[i] = this.chaiZi(i);
+            const caizi = this.chaiZi(i);
+            this.answerListChai[i] = caizi;
         }
         return this.answerListChai;
-    }
-
-    /**
-     * 检查两个字符串是否含有至少num个相同的字符。
-     * 如果任一字符串长度小于等于5，则降低要求到至少有2个相同字符。
-     *
-     * @param {string} str1 - 第一个字符串。
-     * @param {string} str2 - 第二个字符串。
-     * @param {number} [num=5] - 默认要求的相同字符数量。
-     * @returns {boolean} 如果满足条件返回true，否则返回false。
-     */
-    hasMoreThanFiveSameChars(str1, str2, num = 5) {
-        let count = 0;
-        let set = new Set();
-        if (str1.length <= 5 || str2.length <= 5) {
-            num = 2;
-        }
-        for (let i = 0; i < str1.length; i++) {
-            if (!set.has(str1[i])) {
-                set.add(str1[i]);
-                if (str2.includes(str1[i])) {
-                    count++;
-                    if (count >= num) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
     }
     /**
      * 检查并返回给定值的数据类型。
@@ -442,7 +504,51 @@ class test2Paper {
         const mapping = ['A', 'B', 'C', 'D'];
         return arr.map(num => mapping[num]);
     }
-
+    /**
+     * 合并两个对象，第一个字典优先。
+     * 将`dict2`中的键值对合并到`dict1`中，并返回一个新的对象。
+     * 如果`dict2`中的某个键在`dict1`中不存在，则将其添加到结果对象中。
+     * 不会修改原始对象。
+     * @param {Object} dict1 - 第一个对象，合并时作为基础。
+     * @param {Object} dict2 - 第二个对象，其键值对将被合并到`dict1`中。
+     * @returns {Object} - 合并后的新对象，包含了`dict1`和`dict2`的所有键值对。
+     */
+    mergeDicts(dict1, dict2) {
+        const result = { ...dict1 }; // 创建dict1的浅拷贝作为结果对象
+        for (const key in dict2) { // 遍历dict2的键
+            if (!result.hasOwnProperty(key)) { // 如果键不在结果对象中
+                result[key] = dict2[key]; // 添加键值对到结果对象
+            }
+        }
+        return this.dictSort(result); // 返回合并后的新对象
+    }
+    /**
+     * 删除数组中指定索引的元素并返回新数组。原数组不会被修改.
+     *
+     * @param {Array} arr - 要处理的数组.
+     * @param {Array} del - 包含要删除元素索引的数组.
+     * @returns {Array} - 返回一个新的数组，其中不包含指定索引的元素.
+     */
+    delrepeat(arr, del) {
+        for (const key of del) {
+            delete arr[key];
+        }
+        return arr;
+    }
+    /**
+     * 比较两个字符串是否完全相等。
+     *
+     * @param {string} str1 - 第一个字符串用于比较。
+     * @param {string} str2 - 第二个字符串用于比较。
+     * @returns {boolean} - 如果两个字符串相等返回true，否则返回false。
+     */
+    isRight(str1, str2) {
+        if (str1 === str2) {
+            return true
+        } else {
+            return false
+        }
+    }
     /**
     * 格式化答案输出为HTML字符串。
     * @param {Object} answer - 答案对象。
@@ -455,6 +561,7 @@ class test2Paper {
         let subjecthtmlRevised = {
             '单选': [],
             '多选': [],
+            '判断': [],
             '填空': [],
         }
         for (let span1 = 0; span1 < subject3.length; span1++) {
@@ -462,39 +569,63 @@ class test2Paper {
             let answer1 = answer3[span1]
             this.answerListChai = this.chaiAnswerList()
             if (subject1[0][1] === '单选') {
-                let answer1Listold = this.findMatchingElements(answer1[0], this.answerListChai)
-                let answer1List = [...new Set([...answer1Listold, ...this.findMatchingElements(this.getLongestElement(answer1Listold), this.answerListChai)])]
-                if (answer1List.length > 4) {
-                    answer1List = this.getRandomList([...new Set(answer1List)], [answer1])
+                let answer1Listold = this.findMatchingElements(answer1, this.answerListChai)
+                let answer1List;
+                let answer1ListoldKey = Object.keys(answer1Listold)
+                if (answer1ListoldKey.length < 3) {//第4+个是答案本身
+                    answer1List = this.mergeDicts(answer1Listold, this.findMatchingElements0(this.getLongestElement(answer1ListoldKey), this.answerListChai), answer1)
+                } else {
+                    answer1List = answer1Listold
                 }
-                answer1List = this.shuffleArray([...[answer1], ...answer1List]).flat()
+                answer1List = this.delrepeat(answer1List, answer1)
+                let answer2option = Object.keys(answer1List).slice(0, 3);
+                answer2option = this.shuffleArray([...answer1, ...answer2option]).flat()
                 let html = '<span>' + subject1[0][0] + '</span></p>' +
                     `<p><table style="width: 100%;"><tr>
-                <td style="width: 25%;">A. ${answer1List[0]}</td>
-                <td style="width: 25%;">B. ${answer1List[1]}</td>
-                <td style="width: 25%;">C. ${answer1List[2]}</td>
-                <td style="width: 25%;">D. ${answer1List[3]}</td>
+                <td style="width: 25%;">A. ${answer2option[0]}</td>
+                <td style="width: 25%;">B. ${answer2option[1]}</td>
+                <td style="width: 25%;">C. ${answer2option[2]}</td>
+                <td style="width: 25%;">D. ${answer2option[3]}</td>
                 </tr></table><br/>`
                 subjecthtml += html
-                let foundAnswerOption = this.findAnswerOption(answer1List, answer1)
+                let foundAnswerOption = this.findAnswerOption(answer2option, answer1)
                 subjecthtmlRevised['单选'].push([html, answer1, foundAnswerOption])
             } else if (subject1[0][1] === '多选') {
-                let answer1Listold = this.findMatchingElements(answer1.join(''), this.answerListChai)
-                let answer1List = [...new Set([...answer1Listold, ...this.findMatchingElements(this.getLongestElement(answer1Listold), this.answerListChai)])]
-                if (answer1List.length > 3) {
-                    answer1List = this.getRandomList(answer1List, answer1)
+                let answer1Listold = this.findMatchingElements(answer1, this.answerListChai)
+                let answer1List;
+                let answer1ListoldKey = Object.keys(answer1Listold)
+                if (answer1ListoldKey.length < 3) {
+                    answer1List = this.mergeDicts(answer1Listold, this.findMatchingElements0(this.getLongestElement(answer1ListoldKey), this.answerListChai), answer1)
+                } else {
+                    answer1List = answer1Listold
                 }
-                answer1List = this.shuffleArray([...answer1, ...answer1List]).flat()
+                answer1List = this.delrepeat(answer1List, answer1)
+                let answer2option = Object.keys(answer1List).slice(0, 4 - answer1.length);
+                answer2option = this.shuffleArray([...answer1, ...answer2option]).flat()
                 let html = '<span>' + subject1[0][0] + '</span></p>' +
                     `<p><table style="width: 100%;"><tr>
-                <td style="width: 25%;">A. ${answer1List[0]}</td>
-                <td style="width: 25%;">B. ${answer1List[1]}</td>
-                <td style="width: 25%;">C. ${answer1List[2]}</td>
-                <td style="width: 25%;">D. ${answer1List[3]}</td>
+                <td style="width: 25%;">A. ${answer2option[0]}</td>
+                <td style="width: 25%;">B. ${answer2option[1]}</td>
+                <td style="width: 25%;">C. ${answer2option[2]}</td>
+                <td style="width: 25%;">D. ${answer2option[3]}</td>
                 </tr></table><br/>`
                 subjecthtml += html
-                let foundAnswerOption = this.findAnswerOption(answer1List, answer1)
+                let foundAnswerOption = this.findAnswerOption(answer2option, answer1)
                 subjecthtmlRevised['多选'].push([html, answer1, foundAnswerOption])
+            } else if (subject1[0][1] == '判断') {
+                let answer1List = this.dictSort(this.findMatchingElements(answer1, this.answerListChai))
+                let html;
+                let answer1ListKey = Object.keys(answer1List)[0]
+                let foundAnswerOption = this.isRight(answer1ListKey, answer1[0])
+                if (foundAnswerOption) {
+                    html = '<span>' + subject1[0][0].replace('*class="panDuanTiHuan"', answer1) + '</span><br/>'
+                    foundAnswerOption = '√'
+                } else {
+                    html = '<span>' + subject1[0][0].replace('*class="panDuanTiHuan"', answer1ListKey) + '</span><br/>'
+                    foundAnswerOption = '×'
+                }
+                subjecthtml += html
+                subjecthtmlRevised['判断'].push([html, answer1, foundAnswerOption])
             } else if (subject1[0][1] == '填空') {
                 let html = '<span>' + subject1[0][0] + '</span><br/>'
                 subjecthtml += html
@@ -585,13 +716,15 @@ class test2Paper {
         let danxuananswerhtml = ''
         let duoxuananswerhtml = ''
         let panduananswerhtml = ''
+        let tiankonganswerhtml = ''
         let danxuan = ''
         let duoxuan = ''
         let panduan = ''
+        let tiankong = ''
         let countNum = 0
         for (let i of subjecthtmlRevised['单选']) {
             countNum += 1
-            danxuan += `<span>${(countNum)}. ${i[0]} </span>`
+            danxuan += `<span>${(countNum)}. ${i[0].replaceAll('(（','(').replaceAll('）)',')').replaceAll('((','(').replaceAll('))',')')} </span>`
             danxuananswerhtml += `<p><table><tr>
             <td>${(countNum)}. ${i[2].join('')}</td>
             <td width='10px'></td>
@@ -600,25 +733,31 @@ class test2Paper {
         }
         for (let i of subjecthtmlRevised['多选']) {
             countNum += 1
-            duoxuan += `<span>${(countNum)}. ${i[0]} </span>`
+            duoxuan += `<span>${(countNum)}. ${i[0].replaceAll('(（','(').replaceAll('）)',')').replaceAll('((','(').replaceAll('))',')')} </span>`
             duoxuananswerhtml += `<p><table><tr>
             <td width='100px'>${(countNum)}. ${i[2].join('').split("").sort().join("")}</td>
             <td width='10px'></td>
             <td>${i[1].join(' ; ')}</td>
             </tr></table></p>`
         }
+        for (let i of subjecthtmlRevised['判断']) {
+            countNum += 1
+            panduan += `<span>(&nbsp;&nbsp;) ${(countNum)}. ${i[0]} </span>`
+            panduananswerhtml += `<p>${(countNum)}. ${i[2]}</p>`
+        }
         for (let i of subjecthtmlRevised['填空']) {
             countNum += 1
-            panduan += `<span>${(countNum)}. ${i[0]} </span>`
-            panduananswerhtml += `<p>${(countNum)}. ${i[1]}</p>`
-
+            tiankong += `<span>${(countNum)}. ${i[0]} </span>`
+            tiankonganswerhtml += `<p>${(countNum)}. ${i[1]}</p>`
         }
         let tocount = `<p>一、单选题（共计${this.testNum[0]}个空/2分）</p>${danxuan}
         <br/><p>二、多选题（共计${this.testNum[1]}个空/2分）</p>${duoxuan}
-        <br/><p>三、填空题（共计${this.testNum[2]}个空/1分）</p>${panduan}`
+        <br/><p>三、判断题（共计${this.testNum[2]}个空/1分）</p>${panduan}
+        <br/><p>四、填空题（共计${this.testNum[3]}个空/1分）</p>${tiankong}`
         let answerhtml = `<p>一、单选题（共计${this.testNum[0]}个空/2分）</p>${danxuananswerhtml}
         <br/><p>二、多选题（共计${this.testNum[1]}个空/2分）</p>${duoxuananswerhtml}
-        <br/><p>三、填空题（共计${this.testNum[2]}个空/1分）</p>${panduananswerhtml}`
+        <br/><p>三、判断题（共计${this.testNum[2]}个空/1分）</p>${panduananswerhtml}
+        <br/><p>四、填空题（共计${this.testNum[3]}个空/1分）</p>${tiankonganswerhtml}`
         this.doms.text_c.innerHTML = tocount
         this.doms.text_a.innerHTML = answerhtml
         this.doms.test_e.innerHTML = textc
@@ -666,7 +805,7 @@ class test2Paper {
                 stip = true
                 if (selectedNumbersValues[num] === '单选') {
                     const newspan2 = document.createElement('span');
-                    newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(10) + '）</span>'
+                    newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
                     para.parentNode.replaceChild(newspan2, para);
                     inanswer = (num + 1) + '. ' + para.innerText
                     answer[num].push(para.innerText);
@@ -675,12 +814,21 @@ class test2Paper {
                     }
                 } else if (selectedNumbersValues[num] === '多选' && countnum <= 4) {
                     const newspan2 = document.createElement('span');
-                    newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(10) + '）</span>'
+                    newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
                     para.parentNode.replaceChild(newspan2, para);
                     inanswer = (num + 1) + '. ' + para.innerText
                     answer[num].push(para.innerText);
                     countnum++;
-                    if (Math.random()>0.4 && countnum>=2) {
+                    if (Math.random() > 0.4 && countnum >= 2) {
+                        break
+                    }
+                } else if (selectedNumbersValues[num] === '判断') {
+                    const newspan2 = document.createElement('span');
+                    newspan2.innerHTML = '<span>*class="panDuanTiHuan"</span>'
+                    para.parentNode.replaceChild(newspan2, para);
+                    inanswer = (num + 1) + '. ' + para.innerText
+                    answer[num].push(para.innerText);
+                    if (stip) {
                         break
                     }
                 } else if (selectedNumbersValues[num] === '填空') {

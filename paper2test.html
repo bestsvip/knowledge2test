@@ -76,6 +76,7 @@
             color: white;
             text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
         }
+
     </style>
     <script src="chaizi.min.js"></script>
 </head>
@@ -123,19 +124,24 @@
                             <td style="text-align: center;vertical-align: top;">
                                 <br />
                                 <p style="margin: 10px;">
-                                    <span>单选题数量(默认10) </span>
+                                    <span>单选题数量(默认5) </span>
                                     <span><input style="height: 20px;width: auto;padding: 2px;margin-left: 4px;"
-                                            value="10" id="text-bd" /></span>
+                                            value="5" id="text-bd" /></span>
                                 </p>
                                 <p style="margin: 10px;">
-                                    <span>多选题数量(默认10) </span>
+                                    <span>多选题数量(默认5) </span>
                                     <span><input style="height: 20px;width: auto;padding: 2px;margin-left: 4px;"
-                                            value="10" id="text-dbd" /></span>
+                                            value="5" id="text-dbd" /></span>
                                 </p>
                                 <p style="margin: 10px;">
-                                    <span>填空题数量(默认10) </span>
+                                    <span>判断题数量(默认5) </span>
                                     <span><input style="height: 20px;width: auto;padding: 2px;margin-left: 4px;"
-                                            value="10" id="text-bt" /></span>
+                                            value="5" id="text-pd" /></span>
+                                </p>
+                                <p style="margin: 10px;">
+                                    <span>填空题数量(默认5) </span>
+                                    <span><input style="height: 20px;width: auto;padding: 2px;margin-left: 4px;"
+                                            value="5" id="text-bt" /></span>
                                 </p>
                                 <p style="margin: 10px;"></p>
                                 <div class="hm-center-box">
@@ -165,7 +171,7 @@
                 knowledge: 'test-e',
                 test: 'text-c',
                 answer: 'text-a',
-                testNum: ['text-bd', 'text-dbd', 'text-bt'],
+                testNum: ['text-bd', 'text-dbd', 'text-pd', 'text-bt'],
             }
             const test = new test2Paper('btn', dom);
             document.getElementById('notice_title').addEventListener('click', function () {
