@@ -9,13 +9,11 @@ html {
     0% {
         background-position: 0 0;
         background-size: 200% 100%;
-        transform: rotate(0deg);
     }
 
     100% {
         background-position: -300px 0;
         background-size: 100% 100%;
-        transform: rotate(0deg);
     }
 }
 
@@ -55,6 +53,10 @@ html {
     right: 58px;
     width: 52px;
     z-index: 3
+}
+
+::-webkit-scrollbar {
+    display: none;
 }
 
 .hm-content {
