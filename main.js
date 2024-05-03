@@ -32,6 +32,8 @@ class test2Paper {
                 test_e: document.getElementById(dom.knowledge),
             }
             this.sentList = this.splitSentence(this.doms.test_e.innerText)
+            this.content = this.doms.test_e.innerHTML;
+            this.doms.test_e.innerHTML = this.content.replaceAll(/[!?。？！]/g,'</p><p>')
             this.testToPaper()
         };
     }
@@ -686,7 +688,6 @@ class test2Paper {
     * 主处理函数，触发试卷转换流程。
     */
     testToPaper() {
-        const textc = this.doms.test_e.innerHTML;
         this.testStyleReduce()
 
         const childttest = this.doms.test_e.getElementsByTagName('p')
@@ -760,7 +761,7 @@ class test2Paper {
         <br/><p>四、填空题（共计${this.testNum[3]}个空/1分）</p>${tiankonganswerhtml}`
         this.doms.text_c.innerHTML = tocount
         this.doms.text_a.innerHTML = answerhtml
-        this.doms.test_e.innerHTML = textc
+        this.doms.test_e.innerHTML = this.content
     }
 
     /**
