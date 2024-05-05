@@ -27,13 +27,16 @@ class test2Paper {
                 this.typeOfExamQuestion);
             this.doms = {
                 text_a: document.getElementById(dom.answer),
-                text_b: document.getElementById(dom.testNum[0]).value + document.getElementById(dom.testNum[1]).value + document.getElementById(dom.testNum[2]).value + document.getElementById(dom.testNum[3]).value,
+                text_b: parseInt(document.getElementById(dom.testNum[0]).value)
+                    + parseInt(document.getElementById(dom.testNum[1]).value)
+                    + parseInt(document.getElementById(dom.testNum[2]).value)
+                    + parseInt(document.getElementById(dom.testNum[3]).value),
                 text_c: document.getElementById(dom.test),
                 test_e: document.getElementById(dom.knowledge),
             }
             this.sentList = this.splitSentence(this.doms.test_e.innerText)
             this.content = this.doms.test_e.innerHTML;
-            this.doms.test_e.innerHTML = this.content.replaceAll(/[!?。？！]/g,'</p><p>')
+            this.doms.test_e.innerHTML = this.content.replaceAll(/[!?。？！]/g, '</p><p>')
             this.testToPaper()
         };
     }
@@ -51,7 +54,6 @@ class test2Paper {
                 result.push(arr2[i]);
             }
         }
-
         // 完成所有重复操作后，返回结果数组
         return result;
     }
@@ -321,9 +323,9 @@ class test2Paper {
     /**
     * 根据规则筛选并处理文档中的span元素样式。
     */
-
     testStyleReduce() {
         const childttest = this.doms.test_e.getElementsByTagName('span');
+        const answerList = new Set();
         for (const span of childttest) {
             const spancsstext = span.style.cssText;
             const matchedColor = this.colorRegex.exec(spancsstext);
@@ -334,18 +336,17 @@ class test2Paper {
                     matchedColor[0].includes('0, 255, 0') ||
                     matchedColor[0].includes('0, 0, 255'))) {
                 // 由于正则已经匹配到了正确的颜色样式，这里不需要再次赋值
-                this.answerList.push(span.innerText.replaceAll(' ', ''));
+                answerList.add(span.innerText.replaceAll(' ', ''));
             } else {
                 span.style.cssText = ''; // 清除样式
             }
-
             // 只在样式有变化时调用styleReduce
             if (matchedColor) {
                 this.styleReduce(span);
             }
         }
+        this.answerList = Array.from(answerList)
     }
-
     /**
  * 将文本按句子分割，支持常见的句末标点（包括换行符、问号、感叹号及中文句号、问号、感叹号）。
  * 过滤掉空字符串，确保返回的数组中每个元素都是非空的句子。
@@ -403,11 +404,11 @@ class test2Paper {
      * @returns {any[]} 打乱后的数组。
      */
     shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            let j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]]; // ES6解构赋值交换元素
-        }
-        return array;
+        // for (let i = array.length - 1; i > 0; i--) {
+        //     let j = Math.floor(Math.random() * (i + 1));
+        //     [array[i], array[j]] = [array[j], array[i]]; // ES6解构赋值交换元素
+        // }
+        return array.sort(() => Math.random() - 0.5);;
     }
 
     /**
@@ -618,12 +619,13 @@ class test2Paper {
                 let answer1List = this.dictSort(this.findMatchingElements(answer1, this.answerListChai))
                 let html;
                 let answer1ListKey = Object.keys(answer1List)[0]
-                let foundAnswerOption = this.isRight(answer1ListKey, answer1[0])
+                // let foundAnswerOption = this.isRight(answer1ListKey, answer1[0])
+                let foundAnswerOption = Math.random()>0.5
                 if (foundAnswerOption) {
-                    html = '<span>' + subject1[0][0].replace('*class="panDuanTiHuan"', answer1) + '</span><br/>'
+                    html = '<span>' + subject1[0][0].replaceAll('*class="panDuanTiHuan"', answer1) + '</span><br/>'
                     foundAnswerOption = '√'
                 } else {
-                    html = '<span>' + subject1[0][0].replace('*class="panDuanTiHuan"', answer1ListKey) + '</span><br/>'
+                    html = '<span>' + subject1[0][0].replaceAll('*class="panDuanTiHuan"', answer1ListKey) + '</span><br/>'
                     foundAnswerOption = '×'
                 }
                 subjecthtml += html
@@ -650,15 +652,30 @@ class test2Paper {
      * @param {number} realnum - 需要选择的元素数量。
      * @returns {number[]} 选中的数字数组。
      */
-    selectNumbers(numbers, realnum, testlist) {
+    selectNumbers(numbers, realnum, testlist, realgetnumdict) {
         // numbers = Array.from(numbers)
         numbers = [...numbers]
+        let numberkeys = Object.keys(realgetnumdict)
+        let numbervalues = Object.values(realgetnumdict)
+
         let selectedNumbers = {};
+        let selectedDuoxuanNumbers = [];
+        for (let nu = 0; nu < numbervalues.length; nu++) {
+            if (numbervalues[nu] >= 2) {
+                selectedDuoxuanNumbers.push(parseInt(numberkeys[nu]))
+            }
+        }
+        selectedDuoxuanNumbers = this.shuffleArray(selectedDuoxuanNumbers).slice(0, this.testNum[1])
+        numbers = numbers.filter(item => !selectedDuoxuanNumbers.includes(item))
         for (let j = 0; j < realnum; j++) {
-            if (testlist[j]) {
+            if (testlist[j] !== '多选') {
                 let randomIndex = Math.floor(Math.random() * numbers.length);
                 selectedNumbers[numbers[randomIndex]] = testlist[j];
                 numbers.splice(randomIndex, 1);
+            } else if (testlist[j] === '多选') {
+                let randomIndex = Math.floor(Math.random() * selectedDuoxuanNumbers.length);
+                selectedNumbers[selectedDuoxuanNumbers[randomIndex]] = '多选';
+                selectedDuoxuanNumbers.splice(randomIndex, 1);
             }
         }
         delete selectedNumbers.undefined;
@@ -701,13 +718,30 @@ class test2Paper {
                 }
             }
         }
+        const realgetnumdict = {}
+        for (let span1 = 0; span1 < childttest.length; span1++) {
+            if (realgetnum.has(span1)) {
+                const pare = childttest[span1].getElementsByTagName('span')
+                realgetnumdict[span1] = Array.from(pare).map(e => this.colorRegex.test(e.style.cssText)).filter(function (item) {
+                    return item === true;
+                }).length
+                // realgetnumdict.push(Array.from(pare).map(e => this.colorRegex.test(e.style.cssText)).length)
+            }
+        }
         let realnum = this.doms.text_b
-        let selectedNumbers = this.selectNumbers(realgetnum, realnum, this.testlist)
+        let selectedNumbers = this.selectNumbers(realgetnum, realnum, this.testlist, realgetnumdict)
         this.subject = {}
         this.answer = {}
+        let browlst = Object.keys(selectedNumbers)
+        let selectedNumbersValues = {}
+        for (const key in selectedNumbers) {
+            if (key !== 'undefined') {
+                selectedNumbersValues[parseInt(key)] = selectedNumbers[key];
+            }
+        }
         for (let span1 = 0; span1 < childttest.length; span1++) {
-            if (Object.keys(selectedNumbers).includes(span1.toString())) {
-                this.subject, this.answer = this.newSpanCreate(span1, childttest[span1], this.subject, this.answer, selectedNumbers)
+            if (browlst.includes(span1.toString())) {
+                this.subject, this.answer = this.newSpanCreate(span1, childttest[span1], this.subject, this.answer, selectedNumbersValues)
             }
         }
         let subjecthtml, subjecthtmlRevised = this.subjectOutput(this.subject, this.answer)
@@ -723,47 +757,82 @@ class test2Paper {
         let panduan = ''
         let tiankong = ''
         let countNum = 0
-        for (let i of subjecthtmlRevised['单选']) {
-            countNum += 1
-            danxuan += `<span>${(countNum)}. ${i[0].replaceAll('(（','(').replaceAll('）)',')').replaceAll('((','(').replaceAll('))',')')} </span>`
-            danxuananswerhtml += `<p><table><tr>
-            <td>${(countNum)}. ${i[2].join('')}</td>
-            <td width='10px'></td>
+        let tocount1;
+        let numChangeDict = {
+            1: '一',
+            2: '二',
+            3: '三',
+            4: '四',
+            5: '五',
+            6: '六',
+            7: '七',
+            8: '八',
+            9: '九',
+            10: '十'
+        }
+        let numChangeDictFirst = 0;
+        let tocount = '';
+        let answerhtml = '';
+        if (subjecthtmlRevised['单选'].length > 0) {
+            ++numChangeDictFirst;
+            tocount1 = `<p>${numChangeDict[numChangeDictFirst]}、单选题（共计${this.testNum[0]}个空/2分）</p>`
+            danxuananswerhtml += `<p><table>`
+            for (let i of subjecthtmlRevised['单选']) {
+                countNum += 1
+                danxuan += `<span>${(countNum)}. ${i[0].replaceAll('(（', '(').replaceAll('）)', ')').replaceAll('((', '(').replaceAll('))', ')')} </span>`
+                danxuananswerhtml += `<tr>
+            <td nowrap>${(countNum)}. ${i[2].join('')}</td>
+            <td width='10px'>&nbsp;</td>
             <td>${i[1]}</td>
-            </tr></table></p>`
+            </tr>`
+            }
+            danxuananswerhtml += `</table></p>`
+            tocount += tocount1 + danxuan
+            answerhtml += tocount1 + danxuananswerhtml
         }
-        for (let i of subjecthtmlRevised['多选']) {
-            countNum += 1
-            duoxuan += `<span>${(countNum)}. ${i[0].replaceAll('(（','(').replaceAll('）)',')').replaceAll('((','(').replaceAll('))',')')} </span>`
-            duoxuananswerhtml += `<p><table><tr>
-            <td width='100px'>${(countNum)}. ${i[2].join('').split("").sort().join("")}</td>
-            <td width='10px'></td>
+        if (subjecthtmlRevised['多选'].length > 0) {
+            ++numChangeDictFirst;
+            tocount1 = `<br/><p>${numChangeDict[numChangeDictFirst]}、多选题（共计${this.testNum[1]}个空/3分）</p>`
+            duoxuananswerhtml += `<p><table>`
+            for (let i of subjecthtmlRevised['多选']) {
+                countNum += 1
+                duoxuan += `<span>${(countNum)}. ${i[0].replaceAll('(（', '(').replaceAll('）)', ')').replaceAll('((', '(').replaceAll('))', ')')} </span>`
+                duoxuananswerhtml += `<tr>
+            <td width='120px' nowrap>${(countNum)}. ${i[2].join('').split("").sort().join("")}</td>
+            <td width='10px'>&nbsp;</td>
             <td>${i[1].join(' ; ')}</td>
-            </tr></table></p>`
+            </tr>`
+            }
+            duoxuananswerhtml += `</table></p>`
+            tocount += tocount1 + duoxuan
+            answerhtml += tocount1 + duoxuananswerhtml
         }
-        for (let i of subjecthtmlRevised['判断']) {
-            countNum += 1
-            panduan += `<span>(&nbsp;&nbsp;) ${(countNum)}. ${i[0]} </span>`
-            panduananswerhtml += `<p>${(countNum)}. ${i[2]}</p>`
+        if (subjecthtmlRevised['判断'].length > 0) {
+            ++numChangeDictFirst;
+            tocount1 = `<br/><p>${numChangeDict[numChangeDictFirst]}、判断题（共计${this.testNum[2]}个空/2分）</p>`
+            for (let i of subjecthtmlRevised['判断']) {
+                countNum += 1
+                panduan += `<span>(&nbsp;&nbsp;) ${(countNum)}. ${i[0]} </span>`
+                panduananswerhtml += `<p>${(countNum)}. ${i[2]}</p>`
+            }
+            tocount += tocount1 + panduan
+            answerhtml += tocount1 + panduananswerhtml
         }
-        for (let i of subjecthtmlRevised['填空']) {
-            countNum += 1
-            tiankong += `<span>${(countNum)}. ${i[0]} </span>`
-            tiankonganswerhtml += `<p>${(countNum)}. ${i[1]}</p>`
+        if (subjecthtmlRevised['填空'].length > 0) {
+            ++numChangeDictFirst;
+            tocount1 = `<br/><p>${numChangeDict[numChangeDictFirst]}、填空题（共计${this.testNum[3]}个空/2分）</p>`
+            for (let i of subjecthtmlRevised['填空']) {
+                countNum += 1
+                tiankong += `<span>${(countNum)}. ${i[0]} </span>`
+                tiankonganswerhtml += `<p>${(countNum)}. ${i[1]}</p>`
+            }
+            tocount += tocount1 + tiankong
+            answerhtml += tocount1 + tiankonganswerhtml
         }
-        let tocount = `<p>一、单选题（共计${this.testNum[0]}个空/2分）</p>${danxuan}
-        <br/><p>二、多选题（共计${this.testNum[1]}个空/2分）</p>${duoxuan}
-        <br/><p>三、判断题（共计${this.testNum[2]}个空/1分）</p>${panduan}
-        <br/><p>四、填空题（共计${this.testNum[3]}个空/1分）</p>${tiankong}`
-        let answerhtml = `<p>一、单选题（共计${this.testNum[0]}个空/2分）</p>${danxuananswerhtml}
-        <br/><p>二、多选题（共计${this.testNum[1]}个空/2分）</p>${duoxuananswerhtml}
-        <br/><p>三、判断题（共计${this.testNum[2]}个空/1分）</p>${panduananswerhtml}
-        <br/><p>四、填空题（共计${this.testNum[3]}个空/1分）</p>${tiankonganswerhtml}`
         this.doms.text_c.innerHTML = tocount
         this.doms.text_a.innerHTML = answerhtml
         this.doms.test_e.innerHTML = this.content
     }
-
     /**
      * 生成一个介于min（包含）和max（不包含）之间的随机整数。
      * min会被调整为Math.ceil(min - 1)，max会被调整为Math.floor(max - 1)。
@@ -786,73 +855,126 @@ class test2Paper {
     * @param {Object} answer - 答案对象。
     * @returns {Array} 更新后的主题与答案对象数组。
     */
-    newSpanCreate(num, nspan, subject, answer, selectedNumbers) {
+    newSpanCreate(num, nspan, subject, answer, selectedNumbersValues) {
         let countnum = 0
         answer[num] = []
         subject[num] = []
-        let browlst = Object.keys(selectedNumbers)
-        let selectedNumbersValues = new Array(browlst[browlst.length - 1]).fill(null);
-        for (const key in selectedNumbers) {
-            selectedNumbersValues[parseInt(key)] = selectedNumbers[key];
-        }
         const span2 = nspan.getElementsByTagName('span')
-        let remain = false
+        let unshiftDuoxuan = false
+        // let remain = false
         let stip = false
-        for (let p1 = 0; p1 < span2.length; p1++) {
-            let para = span2[p1]
-            let inanswer = ''
-            if (this.colorRegex.test(para.style.cssText)) {
-                remain = true
-                stip = true
-                if (selectedNumbersValues[num] === '单选') {
-                    const newspan2 = document.createElement('span');
-                    newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
-                    para.parentNode.replaceChild(newspan2, para);
-                    inanswer = (num + 1) + '. ' + para.innerText
-                    answer[num].push(para.innerText);
-                    if (stip) {
-                        break
+        let parePast;
+        const span2List = Array.from(span2).map(e => this.colorRegex.test(e.style.cssText))
+        const randNum = span2List.filter(function (item) {
+            return item === true;
+        }).length;
+        if (randNum > 0) {
+            for (let p1 = 0; p1 < span2.length; p1++) {
+                let para = span2[p1]
+                // let inanswer = ''
+                if (this.colorRegex.test(para.style.cssText)) {
+                    if (selectedNumbersValues[num] === '单选') {
+                        if (!stip) {
+                            const newspan2 = document.createElement('span');
+                            newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
+                            para.parentNode.replaceChild(newspan2, para);
+                            // inanswer = (num + 1) + '. ' + para.innerText
+                            answer[num].push(para.innerText);
+                        }
+                        if (stip && Math.random() > 0.4) {
+                            try {
+                                const newspan2 = document.createElement('span');
+                                newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
+                                para.parentNode.replaceChild(newspan2, para);
+                                // inanswer = (num + 1) + '. ' + para.innerText
+                                answer[num] = [para.innerText];
+                            } catch (e) { console.log('单选', e); break }
+                        }
+                    } else if (selectedNumbersValues[num] === '多选' && countnum <= 4) {
+                        if (!stip) {
+                            const newspan2 = document.createElement('span');
+                            newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
+                            para.parentNode.replaceChild(newspan2, para);
+                            // inanswer = (num + 1) + '. ' + para.innerText
+                            answer[num].push(para.innerText);
+                            parePast = para
+                            ++countnum;
+                        }
+                        if (stip && (Math.random() > 0.4 || countnum == 1)) {
+                            try {
+                                // 在储蓄足够时随机删除第一个
+                                if (Math.random() > 0.2 && randNum > 2) {
+                                    unshiftDuoxuan = true
+                                    --countnum;
+                                }
+                                const newspan2 = document.createElement('span');
+                                newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
+                                para.parentNode.replaceChild(newspan2, para);
+                                // inanswer = (num + 1) + '. ' + para.innerText
+                                answer[num].push(para.innerText);
+                                ++countnum;
+                                if (Math.random() > 0.4 && countnum >= 2) {
+                                    if (unshiftDuoxuan) {
+                                        para.parentNode.replaceChild(parePast, newspan2);
+                                        answer[num] = answer[num].unshift();
+                                    }
+                                    break
+                                }
+                            } catch (e) { console.log('多选', e); break }
+                        }
+                        // countnum++;
+                        // if (Math.random() > 0.4 && countnum >= 2) {
+                        //     break
+                        // }
+                    } else if (selectedNumbersValues[num] === '判断') {
+                        if (!stip) {
+                            const newspan2 = document.createElement('span');
+                            newspan2.innerHTML = '<span>*class="panDuanTiHuan"</span>'
+                            para.parentNode.replaceChild(newspan2, para);
+                            // inanswer = (num + 1) + '. ' + para.innerText
+                            answer[num].push(para.innerText);
+                        }
+                        if (stip && Math.random() > 0.4) {
+                            try {
+                                const newspan2 = document.createElement('span');
+                                newspan2.innerHTML = '<span>*class="panDuanTiHuan"</span>'
+                                para.parentNode.replaceChild(newspan2, para);
+                                // inanswer = (num + 1) + '. ' + para.innerText
+                                answer[num] = [para.innerText];
+                            } catch (e) { console.log('判断', e); break }
+                        }
+                    } else if (selectedNumbersValues[num] === '填空') {
+                        if (!stip) {
+                            const newspan2 = document.createElement('span');
+                            newspan2.innerHTML = '<span>' + '_'.repeat(parseInt(para.innerText.length * 2.5) + 4) + '</span>'
+                            para.parentNode.replaceChild(newspan2, para);
+                            // inanswer = (num + 1) + '. ' + para.innerText
+                            answer[num].push(para.innerText);
+                        }
+                        if (stip && Math.random() > 0.4) {
+                            try {
+                                const newspan2 = document.createElement('span');
+                                newspan2.innerHTML = '<span>' + '_'.repeat(parseInt(para.innerText.length * 2.5) + 4) + '</span>'
+                                para.parentNode.replaceChild(newspan2, para);
+                                // inanswer = (num + 1) + '. ' + para.innerText
+                                answer[num] = [para.innerText];
+                            } catch (e) { console.log('填空', e); break }
+                        }
                     }
-                } else if (selectedNumbersValues[num] === '多选' && countnum <= 4) {
-                    const newspan2 = document.createElement('span');
-                    newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
-                    para.parentNode.replaceChild(newspan2, para);
-                    inanswer = (num + 1) + '. ' + para.innerText
-                    answer[num].push(para.innerText);
-                    countnum++;
-                    if (Math.random() > 0.4 && countnum >= 2) {
-                        break
-                    }
-                } else if (selectedNumbersValues[num] === '判断') {
-                    const newspan2 = document.createElement('span');
-                    newspan2.innerHTML = '<span>*class="panDuanTiHuan"</span>'
-                    para.parentNode.replaceChild(newspan2, para);
-                    inanswer = (num + 1) + '. ' + para.innerText
-                    answer[num].push(para.innerText);
-                    if (stip) {
-                        break
-                    }
-                } else if (selectedNumbersValues[num] === '填空') {
-                    const newspan2 = document.createElement('span');
-                    newspan2.innerHTML = '<span>' + '_'.repeat(parseInt(para.innerText.length * 2.5) + 4) + '</span>'
-                    para.parentNode.replaceChild(newspan2, para);
-                    inanswer = (num + 1) + '. ' + para.innerText
-                    answer[num].push(para.innerText);
-                    if (stip) {
-                        break
-                    }
+                    // remain = true
+                    stip = true
+                    // this.doms.text_a.innerHTML += inanswer + '<p>';
                 }
-                this.doms.text_a.innerHTML += inanswer + '<p>';
             }
-        }
-        if (remain) {
+            // if (remain) {
             const newspan = document.createElement('span');
             newspan.innerHTML = '<span>' + (num + 1) + '. ' + nspan.innerText + '</span><p>';
             this.doms.text_c.appendChild(newspan);
             const createP = document.createElement('p');
             this.doms.text_c.appendChild(createP);
             subject[num].push([nspan.innerText, selectedNumbersValues[num]]);
-            remain = false
+            // remain = false
+            // }
         }
         return subject, answer
     }
