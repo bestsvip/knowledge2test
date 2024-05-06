@@ -205,6 +205,29 @@ class test2Paper {
         return Object.fromEntries(sortedObj);
     }
     /**
+    * 该函数未检测，可能有bug
+    *
+    */
+    dictSortRandomOthers(obj, num) {
+        let sorted;
+        // 将对象转换为键值对数组并按照值进行排序
+        const sortedObj = Object.entries(obj).sort((a, b) => b[1] - a[1]);
+        // 将排序后的键值对数组转换回对象
+        const sortedDictslice = Object.fromEntries(sortedObj.slice(num))
+        if (Object.values(sortedDictslice).length >= 3 && Object.values(sortedDictslice)[0] === 1) {
+            const sortedDict = Object.fromEntries(sortedObj.slice(0, num))
+            const sortedDictsliceShuffleArray = this.shuffleArray(Object.keys(sortedDictslice))
+            let result = {};
+            for (let i = 0; i < sortedDictsliceShuffleArray.length; i++) {
+                result[sortedDictsliceShuffleArray[i]] = 1;
+            }
+            sorted = Object.assign({}, sortedDict, result);
+        } else {
+            sorted = Object.fromEntries(sortedObj);
+        }
+        return sorted;
+    }
+    /**
      * 根据输入单词的类型查找匹配项，并生成相应的变体或查找相似度高的单词。
      * 支持数字（中文或阿拉伯数字）、纯字母单词的随机化变体生成，以及查找具有至少5个相同字符的单词。
      * 若结果数量不足四个，尝试从相邻句子中寻找匹配项。
@@ -215,7 +238,12 @@ class test2Paper {
      */
     findMatchingElements(wordc, answerList) {
         const result = {};
-        const word = wordc.join('')
+        let word;
+        try {
+            word = wordc.join('')
+        } catch {
+            word = wordc.toString()
+        }
         if (this.checkType(wordc) === '数组' && (/[a-zA-Z]/.test(word) || /[0-9]/.test(word))) {
 
         } else {
@@ -523,7 +551,7 @@ class test2Paper {
                 result[key] = dict2[key]; // 添加键值对到结果对象
             }
         }
-        return this.dictSort(result); // 返回合并后的新对象
+        return this.dictSortRandomOthers(result); // 返回合并后的新对象
     }
     /**
      * 删除数组中指定索引的元素并返回新数组。原数组不会被修改.
@@ -533,8 +561,12 @@ class test2Paper {
      * @returns {Array} - 返回一个新的数组，其中不包含指定索引的元素.
      */
     delrepeat(arr, del) {
-        for (const key of del) {
-            delete arr[key];
+        if (this.checkType(del) === '数组') {
+            for (const key of del) {
+                delete arr[key];
+            }
+        } else if (this.checkType(del) === '数字' || this.checkType(del) === '字符串') {
+            delete arr[del];
         }
         return arr;
     }
@@ -569,7 +601,7 @@ class test2Paper {
         }
         for (let span1 = 0; span1 < subject3.length; span1++) {
             let subject1 = subject3[span1]
-            let answer1 = answer3[span1]
+            let answer1 = [answer3[span1]].flat()
             this.answerListChai = this.chaiAnswerList()
             if (subject1[0][1] === '单选') {
                 let answer1Listold = this.findMatchingElements(answer1, this.answerListChai)
@@ -597,7 +629,7 @@ class test2Paper {
                 let answer1Listold = this.findMatchingElements(answer1, this.answerListChai)
                 let answer1List;
                 let answer1ListoldKey = Object.keys(answer1Listold)
-                if (answer1ListoldKey.length < 3) {
+                if (answer1ListoldKey.length <= 3) {
                     answer1List = this.mergeDicts(answer1Listold, this.findMatchingElements0(this.getLongestElement(answer1ListoldKey), this.answerListChai), answer1)
                 } else {
                     answer1List = answer1Listold
@@ -618,14 +650,14 @@ class test2Paper {
             } else if (subject1[0][1] == '判断') {
                 let answer1List = this.dictSort(this.findMatchingElements(answer1, this.answerListChai))
                 let html;
-                let answer1ListKey = Object.keys(answer1List)[0]
+                let answer1ListKey = Object.keys(answer1List)
                 // let foundAnswerOption = this.isRight(answer1ListKey, answer1[0])
-                let foundAnswerOption = Math.random()>0.5
+                let foundAnswerOption = Math.random() > 0.5
                 if (foundAnswerOption) {
-                    html = '<span>' + subject1[0][0].replaceAll('*class="panDuanTiHuan"', answer1) + '</span><br/>'
+                    html = '<span>' + subject1[0][0].replaceAll('*class="panDuanTiHuan"', answer1[0]) + '</span><br/>'
                     foundAnswerOption = '√'
                 } else {
-                    html = '<span>' + subject1[0][0].replaceAll('*class="panDuanTiHuan"', answer1ListKey) + '</span><br/>'
+                    html = '<span>' + subject1[0][0].replaceAll('*class="panDuanTiHuan"', answer1ListKey[0] = answer1[0] ? answer1ListKey[1] : answer1ListKey[0]) + '</span><br/>'
                     foundAnswerOption = '×'
                 }
                 subjecthtml += html
@@ -746,7 +778,6 @@ class test2Paper {
         }
         let subjecthtml, subjecthtmlRevised = this.subjectOutput(this.subject, this.answer)
         // let answerTotalCount = this.score(this.answer)
-        // let tocount = '<span>一、填空题（共计' + answerTotalCount + '个空/2分）</span><p></p>' + subjecthtml
         // let tocount = subjecthtml
         let danxuananswerhtml = ''
         let duoxuananswerhtml = ''
@@ -848,6 +879,15 @@ class test2Paper {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
     /**
+   * 检查字符串中是否包含中文字符。
+   * @param {string} str - 需要检查的字符串。
+   * @return {boolean} - 如果字符串中包含至少一个中文字符，则返回true；否则返回false。
+   */
+    hasChinese(str) {
+        // 使用正则表达式检查字符串中是否存在中文字符
+        return /[\u4e00-\u9fa5]/.test(str);
+    }
+    /**
     * 创建新span元素并更新答案与题目对象。
     * @param {number} num - 当前处理的段落索引。
     * @param {HTMLElement} nspan - 当前处理的段落元素。
@@ -878,6 +918,7 @@ class test2Paper {
                             const newspan2 = document.createElement('span');
                             newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
                             para.parentNode.replaceChild(newspan2, para);
+                            parePast = para
                             // inanswer = (num + 1) + '. ' + para.innerText
                             answer[num].push(para.innerText);
                         }
@@ -885,6 +926,7 @@ class test2Paper {
                             try {
                                 const newspan2 = document.createElement('span');
                                 newspan2.innerHTML = '<span>（' + '&nbsp;'.repeat(3) + '）</span>'
+                                nspan.getElementsByTagName("span")[1].parentNode.replaceChild(parePast, newspan2);
                                 para.parentNode.replaceChild(newspan2, para);
                                 // inanswer = (num + 1) + '. ' + para.innerText
                                 answer[num] = [para.innerText];
@@ -903,7 +945,7 @@ class test2Paper {
                         if (stip && (Math.random() > 0.4 || countnum == 1)) {
                             try {
                                 // 在储蓄足够时随机删除第一个
-                                if (Math.random() > 0.2 && randNum > 2) {
+                                if (!unshiftDuoxuan && Math.random() > 0.2 && randNum > 2) {
                                     unshiftDuoxuan = true
                                     --countnum;
                                 }
@@ -914,9 +956,10 @@ class test2Paper {
                                 answer[num].push(para.innerText);
                                 ++countnum;
                                 if (Math.random() > 0.4 && countnum >= 2) {
-                                    if (unshiftDuoxuan) {
-                                        para.parentNode.replaceChild(parePast, newspan2);
-                                        answer[num] = answer[num].unshift();
+                                    if (unshiftDuoxuan && countnum >= 3) {
+                                        nspan.getElementsByTagName("span")[1].parentNode.replaceChild(parePast, findchild);
+                                        answer[num] = answer[num].slice(1, answer[num].length);
+                                        continue
                                     }
                                     break
                                 }
@@ -931,6 +974,7 @@ class test2Paper {
                             const newspan2 = document.createElement('span');
                             newspan2.innerHTML = '<span>*class="panDuanTiHuan"</span>'
                             para.parentNode.replaceChild(newspan2, para);
+                            parePast = para
                             // inanswer = (num + 1) + '. ' + para.innerText
                             answer[num].push(para.innerText);
                         }
@@ -938,6 +982,7 @@ class test2Paper {
                             try {
                                 const newspan2 = document.createElement('span');
                                 newspan2.innerHTML = '<span>*class="panDuanTiHuan"</span>'
+                                nspan.getElementsByTagName("span")[1].parentNode.replaceChild(parePast, newspan2);
                                 para.parentNode.replaceChild(newspan2, para);
                                 // inanswer = (num + 1) + '. ' + para.innerText
                                 answer[num] = [para.innerText];
@@ -948,6 +993,7 @@ class test2Paper {
                             const newspan2 = document.createElement('span');
                             newspan2.innerHTML = '<span>' + '_'.repeat(parseInt(para.innerText.length * 2.5) + 4) + '</span>'
                             para.parentNode.replaceChild(newspan2, para);
+                            parePast = para
                             // inanswer = (num + 1) + '. ' + para.innerText
                             answer[num].push(para.innerText);
                         }
@@ -955,6 +1001,7 @@ class test2Paper {
                             try {
                                 const newspan2 = document.createElement('span');
                                 newspan2.innerHTML = '<span>' + '_'.repeat(parseInt(para.innerText.length * 2.5) + 4) + '</span>'
+                                nspan.getElementsByTagName("span")[1].parentNode.replaceChild(parePast, newspan2);
                                 para.parentNode.replaceChild(newspan2, para);
                                 // inanswer = (num + 1) + '. ' + para.innerText
                                 answer[num] = [para.innerText];

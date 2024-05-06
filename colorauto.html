@@ -35,7 +35,7 @@
                                         style="margin:0;background-color: rgb(255, 0, 0);"
                                         onclick="changeColor('red')"></button>
                                 </td>
-                                <td> <button title="将字体颜色改为黑色" id="black"
+                                <td> <button title="将字体颜色改为黑色，也可以按快捷键 Alt" id="black"
                                         style="margin:0;background-color: rgb(0, 0, 0);"
                                         onclick="changeColor('black')"></button>
                                 </td>
@@ -43,7 +43,7 @@
                                         onclick="geShiShua()">格式刷红</button>
                                 </td>
                                 <td>
-                                    <span style="margin:0;margin-top: -20px;" title='禁止编辑全文（不包括颜色编辑），再点一下解锁'>
+                                    <span style="margin:0;margin-top: -20px;" title='禁止编辑全文（可使用快捷键编辑），再点一下解锁'>
                                         <input id="inpLock" type="checkbox" onclick="contentEditableChange()">
                                         <label class="btn-lock" for="inpLock">
                                             <svg width="36" height="40" viewBox="0 0 36 40">
@@ -60,9 +60,13 @@
                                         </label>
                                     </span>
                                 </td>
+                                <td> <button title="在两个无间隔符相连关键词之间插入空白占位符，避免识别时将两个关键词识别成一个" id="shuaZi"
+                                        style="margin:0;" onclick="placeholder()">占位符</button>
+                                </td>
                                 <td> <button
                                         style="background: linear-gradient(90deg, #5689fd, #7575f8 100%);color: #fff;"
-                                        id="notice_title" title="导出题目和答案（word），只有经过导出处理的doc或word打开的文档，才能被系统识别" onclick="html2doc()">导出</button>
+                                        id="notice_title" title="导出题目和答案（word），只有经过导出处理的doc或word打开的文档，才能被系统识别"
+                                        onclick="html2doc()">导出</button>
                                 </td>
                             </tr>
                         </table>
@@ -80,9 +84,9 @@
         function html2doc() {
             $("#word").wordExport('知识点');
         }
-        if (localStorage.getItem('key') !== null) {
-            document.getElementById('word').innerHTML = localStorage.getItem('key')
-            if (localStorage.getItem('wordsContentEditable') === 'false') {
+        if (sessionStorage.getItem('key') !== null) {
+            document.getElementById('word').innerHTML = sessionStorage.getItem('key')
+            if (sessionStorage.getItem('wordsContentEditable') === 'false') {
                 document.getElementById('word').contentEditable = 'false'
                 document.getElementById('inpLock').checked = 'true'
             } else {
@@ -92,13 +96,15 @@
         function contentEditableChange() {
             // document.getElementById('inpLock').checked
             let contChange = document.getElementById('word').contentEditable
-            console.log(contChange, contChange === 'true')
             if (contChange === 'true') {
                 document.getElementById('word').contentEditable = false
-                localStorage.setItem('wordsContentEditable', 'false')
+                sessionStorage.setItem('wordsContentEditable', 'false')
             } else {
                 document.getElementById('word').contentEditable = true
-                localStorage.setItem('wordsContentEditable', 'true')
+                sessionStorage.setItem('wordsContentEditable', 'true')
+                document.getElementById('red').style.display = 'block';
+                document.getElementById('black').style.display = 'block';
+                document.getElementById('shuaZi').style.display = 'block';
             }
         }
         function changeColor(color) {
@@ -108,13 +114,32 @@
             // 获取当前选中的文本范围
             var selection = window.getSelection();
             if (selection.rangeCount > 0) {
+                // var range = selection.getRangeAt(0);
+                // 创建一个span元素用于包裹选中文本，并应用新样式
+                // var span = document.createElement('span');
+                // span.style.color = 'red';
+                // // 将选中文本移到新的span中
+                // range.surroundContents(span);
+                changeColor('red');
+            }
+        }
+
+        function placeholder() {
+            // 获取当前选中的文本范围
+            var selection = window.getSelection();
+            if (selection.rangeCount = 1) {
                 var range = selection.getRangeAt(0);
                 // 创建一个span元素用于包裹选中文本，并应用新样式
                 var span = document.createElement('span');
-                span.style.color = 'red';
+                span.style.color='black';
+                span.className = 'placeholder'
+                span.setAttribute('title', '关键词分隔符，用于两个关键词连在一起时让系统自动识别为两个关键词')
                 // 将选中文本移到新的span中
                 range.surroundContents(span);
+                // innerText、innerHTML、textContent等需放置在下面，避免bug
+                span.innerText= '‌‌‏‌‌‌'
             }
+
         }
         var isShuaZi = false;
         function geShiShua() {
@@ -133,9 +158,11 @@
             }
         }
         document.addEventListener('keydown', function (event) {
-            // console.log(event.key)
             if (event.key === 'Control') {
                 changeColor('red')
+            }
+            if (event.key === 'Alt') {
+                changeColor('black')
             }
         });
 
@@ -143,7 +170,7 @@
             return document.getElementById('word').innerHTML
         }
         function data(winn) {
-            localStorage.setItem('key', winn)
+            sessionStorage.setItem('key', winn)
         }
         aaa = winn()
         setInterval(
@@ -178,6 +205,15 @@
             popup.style.top = `${popupTop}px`;
             popup.style.display = 'block';
             popup.classList.add('opacity');
+            if (document.getElementById('inpLock').checked){
+                document.getElementById('red').style.display = 'none';
+                document.getElementById('black').style.display = 'none';
+                document.getElementById('shuaZi').style.display = 'none';
+            }else{
+                document.getElementById('red').style.display = 'block';
+                document.getElementById('black').style.display = 'block';
+                document.getElementById('shuaZi').style.display = 'block';
+            }
             let timerId;
             // 在弹出框上悬停时暂停计时器
             document.getElementById('popup').addEventListener('mouseover', function () {
@@ -188,7 +224,7 @@
             document.getElementById('popup').addEventListener('mouseout', function () {
                 timerId = setInterval(function () {
                     popup.classList.remove('opacity');
-                }, 3000); // 1秒间隔，您可以根据需要调整
+                }, 3000); 
             });
         }
 
