@@ -49,7 +49,6 @@ class test2Paper {
                 }else{
                     newInnerHtml += ui.innerHTML
                 }
-                console.log(text,!this.hasElementWithLengthLessThanX(text, 8),ui.innerHTML)
             }
             // const contentReplaceAll = this.content.replaceAll(/[!?。？！]/g, '</p><p>')
             this.doms.test_e.innerHTML = newInnerHtml
@@ -75,8 +74,6 @@ class test2Paper {
         if (this.checkType(arr) === '数组') {
             // 遍历数组中的每个元素
             for (let i = 0; i < arr.length; i++) {
-                console.log(arr[i], arr[i].length < num)
-
                 // 如果当前元素的长度小于指定数值，返回true
                 if (arr[i].length < num) {
                     return true;
@@ -88,7 +85,6 @@ class test2Paper {
         else if (this.checkType(arr) === '对象') {
             // 遍历数组中的每个元素
             for (let i = 0; i < arr.length; i++) {
-                console.log(arr[i].innerText, arr[i].innerText.length < num)
                 // 如果当前元素的长度小于指定数值，返回true
                 if (arr[i].innerText.length < num) {
                     return true;
